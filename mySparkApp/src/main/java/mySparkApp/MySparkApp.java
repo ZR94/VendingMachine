@@ -45,8 +45,8 @@ public class MySparkApp {
 		try {
 			client = new MqttClient(serverUrl, "2");
 			MqttConnectOptions options = new MqttConnectOptions();
-//			options.setUserName(mqttUserName);
-//			options.setPassword(mqttPassword.toCharArray());
+			//options.setUserName(mqttUserName);
+			//options.setPassword(mqttPassword.toCharArray());
 			
 			options.setConnectionTimeout(60);
 			options.setKeepAliveInterval(60);
@@ -78,7 +78,6 @@ public class MySparkApp {
 		}
 		
 		
-
         get("/hello", (request, response) -> "Hello World!");
 
         post("/hello", (request, response) ->
