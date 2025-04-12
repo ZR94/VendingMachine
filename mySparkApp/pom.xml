@@ -1,0 +1,51 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>uniupo.it</groupId>
+  <artifactId>mySparkApp</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>mySparkApp</name>
+  
+  <dependencies>
+	  
+	<dependency>
+		<groupId>com.sparkjava</groupId>
+		<artifactId>spark-core</artifactId>
+		<version>2.9.4</version>
+	</dependency>
+	
+	<!-- SLF4J API -->
+	<dependency>
+		<groupId>org.slf4j</groupId>
+		<artifactId>slf4j-api</artifactId>
+		<version>2.0.9</version>
+	</dependency>
+	
+	<!-- SLF4J Log4j Implementation -->
+	<dependency>
+		<groupId>org.slf4j</groupId>
+		<artifactId>slf4j-log4j12</artifactId>
+		<version>2.0.9</version>
+	</dependency>
+	
+	<dependency>
+		<groupId>org.eclipse.paho</groupId>
+		<artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+		<version>1.2.5</version>
+	</dependency>
+	
+	<!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java --> 
+	<dependency>
+		<groupId>mysql</groupId>
+		<artifactId>mysql-connector-java</artifactId>
+		<version>8.0.33</version>
+	</dependency>
+	
+	<dependency>
+		<groupId>org.bouncycastle</groupId>
+		<artifactId>bcpkix-jdk18on</artifactId>
+		<version>1.76</version>
+	</dependency>
+	
+  </dependencies>
+  
+</project>
