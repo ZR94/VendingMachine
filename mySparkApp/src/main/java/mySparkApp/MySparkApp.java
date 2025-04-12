@@ -9,6 +9,9 @@ import java.security.KeyStore;
 import java.security.Security;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -77,34 +80,19 @@ public class MySparkApp {
 			e.printStackTrace();
 		}
 		
+		try {
+			
+			Class.forName("com.mysql.cj.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/sonoo", "root", "root");
+			
+			Statement st= con.createStatement();
+			
+			con.close();
+		} catch (Exception e) {System.out.println(e);}
 		
-        get("/hello", (request, response) -> "Hello World!");
+		
+        get("/login", (request, response) -> "");
 
-        post("/hello", (request, response) ->
-            "Hello World: " + request.body()
-        );
-
-        get("/private", (request, response) -> {
-            response.status(401);
-            return "Go Away!!!";
-        });
-
-        get("/users/:name", (request, response) -> "Selected user: " + request.params(":name"));
-
-        get("/news/:section", (request, response) -> {
-            response.type("text/xml");
-            return "<?xml version=\"1.0\" encoding=\"UTF-8\"?><news>" + request.params("section") + "</news>";
-        });
-
-        get("/protected", (request, response) -> {
-            halt(403, "I don't think so!!!");
-            return null;
-        });
-
-        get("/redirect", (request, response) -> {
-            response.redirect("/news/world");
-            return null;
-        });
 
         get("/", (request, response) -> "root");
     }
@@ -163,8 +151,7 @@ public class MySparkApp {
 		TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
 		tmf.init(caKs);
 
-		// client key and certificates are sent to server so it can authenticate
-		// us
+		// client key and certificates are sent to server so it can authenticate us
 		KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
 		ks.load(null, null);
 		ks.setCertificateEntry("certificate", cert);
