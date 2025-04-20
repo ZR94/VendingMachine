@@ -1,12 +1,10 @@
 package mySparkApp;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
 
 public class CoffeeMachine implements Serializable {
 	
-	private String id;
+	private final String id;
     private String location;
     //private Map<CapsuleType, Integer> capsules;
     private double currentCash;
