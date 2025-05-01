@@ -42,15 +42,12 @@ public class MySparkApp {
 		String caFilePath = home + "/Documents/VisualStudioCodeProject/MachineCoffeeProject/mySparkApp/TLS/ca/ca.crt";
     	String clientCrtFilePath = home + "/Documents/VisualStudioCodeProject/MachineCoffeeProject/mySparkApp/TLS/client/client.crt";
     	String clientKeyFilePath = home + "/Documents/VisualStudioCodeProject/MachineCoffeeProject/mySparkApp/TLS/client/client.key"; 
-    	//String mqttUserName = "pissir";
-    	//String mqttPassword = "pissir";
+
     	
 		MqttClient client;
 		try {
 			client = new MqttClient(serverUrl, "2");
 			MqttConnectOptions options = new MqttConnectOptions();
-			//options.setUserName(mqttUserName);
-			//options.setPassword(mqttPassword.toCharArray());
 			
 			options.setConnectionTimeout(60);
 			options.setKeepAliveInterval(60);
