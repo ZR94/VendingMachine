@@ -2,7 +2,7 @@ package mySparkApp;
 
 import java.io.Serializable;
 
-public class CoffeeMachine implements Serializable {
+public class ControllerCoffeeMachine implements Serializable {
 	
 	private final String id;
     private String location;
@@ -11,7 +11,7 @@ public class CoffeeMachine implements Serializable {
     //private List<Beverage> menu;
     //private MachineStatus status
     
-	public CoffeeMachine(String id, String location, double currentCash) {
+	public ControllerCoffeeMachine(String id, String location, double currentCash) {
 		super();
 		this.id = id;
 		this.location = location;

@@ -29,8 +29,8 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
 import org.eclipse.paho.client.mqttv3.*;
-//import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-//import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
 
 public class MySparkApp {
 	
@@ -38,9 +38,10 @@ public class MySparkApp {
     public static void main(String[] args) {
 
     	String serverUrl = "ssl://localhost:8883";
-    	String caFilePath = "./TLS/ca/ca.crt";
-    	String clientCrtFilePath = "./TLS/client/client.crt";
-    	String clientKeyFilePath = "./TLS/client/client.key"; 
+    	String home = System.getProperty("user.home");
+		String caFilePath = home + "/Documents/VisualStudioCodeProject/MachineCoffeeProject/mySparkApp/TLS/ca/ca.crt";
+    	String clientCrtFilePath = home + "/Documents/VisualStudioCodeProject/MachineCoffeeProject/mySparkApp/TLS/client/client.crt";
+    	String clientKeyFilePath = home + "/Documents/VisualStudioCodeProject/MachineCoffeeProject/mySparkApp/TLS/client/client.key"; 
     	//String mqttUserName = "pissir";
     	//String mqttPassword = "pissir";
     	
@@ -80,21 +81,27 @@ public class MySparkApp {
 			e.printStackTrace();
 		}
 		
-		try {
-			
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/sonoo", "root", "root");
-			
-			Statement st= con.createStatement();
-			
-			con.close();
-		} catch (Exception e) {System.out.println(e);}
+    // Parte Database (usando DBConnect)
+    try {
+        DBConnect dbConnect = DBConnect.getInstance(); 
+        Connection con = dbConnect.getConnection();   
+        
+        // Esempio: crea una tabella se non esiste
+        Statement st = con.createStatement();
+        st.execute("CREATE TABLE IF NOT EXISTS test (id INT, name VARCHAR(20))");
+        
+        // Inserisci dati di esempio
+        st.executeUpdate("INSERT INTO test VALUES (1, 'Java')");
+        
+        System.out.println("Operazioni sul DB completate!");
+        con.close(); // Chiudi la connessione 
+    } catch (Exception e) {
+        System.out.println("Errore DB: " + e.getMessage());
+    }
 		
 		
-        get("/login", (request, response) -> "");
-
-
-        get("/", (request, response) -> "root");
+        //get("/login", (request, response) -> "");
+        //get("/", (request, response) -> "root");
     }
     
     //gruppo di classi che ci forniscono delle funzioni in maniera facile
