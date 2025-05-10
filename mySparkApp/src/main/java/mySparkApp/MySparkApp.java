@@ -83,12 +83,6 @@ public class MySparkApp {
         DBConnect dbConnect = DBConnect.getInstance(); 
         Connection con = dbConnect.getConnection();   
         
-        // Esempio: crea una tabella se non esiste
-        Statement st = con.createStatement();
-        st.execute("CREATE TABLE IF NOT EXISTS test (id INT, name VARCHAR(20))");
-        
-        // Inserisci dati di esempio
-        st.executeUpdate("INSERT INTO test VALUES (1, 'Java')");
         
         System.out.println("Operazioni sul DB completate!");
         con.close(); // Chiudi la connessione 

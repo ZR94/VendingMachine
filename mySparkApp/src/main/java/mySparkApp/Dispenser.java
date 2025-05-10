@@ -5,11 +5,12 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 public class Dispenser {
+    String serverUrl = "ssl://localhost:8883";
     private MqttClient mqttClient;
 
     public Dispenser() {
         try {
-            mqttClient = new MqttClient("tcp://localhost:1883", "dispenser-client");
+            mqttClient = new MqttClient(serverUrl, "dispenser-client");
             mqttClient.connect();
             mqttClient.subscribe("your/topic");
         } catch (MqttException e) {

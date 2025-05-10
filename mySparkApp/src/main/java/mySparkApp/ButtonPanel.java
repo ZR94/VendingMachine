@@ -1,71 +1,103 @@
 package mySparkApp;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashMap;
 import java.util.Map;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.MqttPersistenceException;
+import org.eclipse.paho.client.mqttv3.MqttException;
 
 public class ButtonPanel {
-    private Map<Integer, Double> prices; // Map to store prices of beverages
-    private Map<Integer, Integer> quantities; // Map to store quantities of beverages
-    private Map<Integer, Integer> sugarQuantities; // Map to store quantities of sugar
-    private Map<Integer, Integer> paperGlassQuantities; // Map to store quantities of paper glasses
+    private MqttClient mqttClient;
+    private String topicDispenser;
+    private String topicCashRegister;
+    private String topicSupport;
+    String serverUrl = "ssl://localhost:8883";
+
+    public ButtonPanel() throws MqttException {
+        mqttClient = new MqttClient(serverUrl, "ButtonPanel");
+        topicDispenser = "dispenser/status";
+        topicCashRegister = "cashregister/status";
+        topicSupport = "support/alert";
+    }
+
+    public void selectBeverage(String beverage) {
+        // Controlla se la macchina è in stato guasto
+        if (isMachineFaulty()) {
+            // Comunica alla classe Support che la macchina è guasta
+            sendAlertToSupport("Macchina guasta");
+            return;
+        }
+
+        // Controlla se le capsule per fare le bevande, i bicchierini e lo zucchero richiesto sono disponibili
+        if (!isDispenserAvailable(beverage)) {
+            System.out.println("Dispenser non disponibile");
+            return;
+        }
+
+        // Controlla se la cassa non ha raggiunto la capienza massima
+        if (!isCashRegisterAvailable()) {
+            System.out.println("Cassa piena");
+            return;
+        }
+
+        // Accetta i soldi e depositali in cassa
+        acceptMoney(beverage);
+    }
+
+    private boolean isMachineFaulty() {
+        // Legge lo stato della macchina da un topic MQTT
+        MqttMessage message = mqttClient.getMessage("machine/status");
+        return message.getPayload().equals("guasto");
+    }
+
+    private boolean isDispenserAvailable(String beverage) {
+        // Pubblica un messaggio MQTT per chiedere lo stato del dispenser
+        mqttClient.publish(topicDispenser, new MqttMessage(beverage.getBytes()));
+        // Legge la risposta del dispenser da un topic MQTT
+        MqttMessage message = mqttClient.getMessage(topicDispenser + "/response");
+        return message.getPayload().equals("disponibile");
+    }
+
+    private boolean isCashRegisterAvailable() {
+        // Pubblica un messaggio MQTT per chiedere lo stato della cassa
+        mqttClient.publish(topicCashRegister, new MqttMessage());
+        // Legge la risposta della cassa da un topic MQTT
+        MqttMessage message = mqttClient.getMessage(topicCashRegister + "/response");
+        return message.getPayload().equals("disponibile");
+    }
+
+    private void acceptMoney(String beverage) {
+        // Accetta i soldi e depositali in cassa
+        System.out.println("Soldi accettati");
+        // Pubblica un messaggio MQTT per confermare l'accettazione dei soldi
+        try {
+            mqttClient.publish(topicCashRegister + "/confirm", new MqttMessage(beverage.getBytes()));
+        } catch (MqttPersistenceException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (MqttException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    private void sendAlertToSupport(String message) {
+        // Pubblica un messaggio MQTT per avvisare la classe Support
+        mqttClient.publish(topicSupport, new MqttMessage(message.getBytes()));
+    }
+}
+
+/*
+   public class ButtonPanel {
+    private Dao queryManager; // Dao instance for database queries
     private double insertedMoney; // Variable to store the money inserted by the user
-    private DBConnect dbConnect; // DBConnect instance for database connection
     private int selectedBeverageId; // Variable to store the selected beverage ID
     private int selectedSugarQuantity; // Variable to store the selected sugar quantity
     private int selectedPaperGlassQuantity; // Variable to store the selected paper glass quantity
 
     public ButtonPanel() {
-        prices = new HashMap<>();
-        quantities = new HashMap<>();
-        sugarQuantities = new HashMap<>();
-        paperGlassQuantities = new HashMap<>();
+        queryManager = new Dao();
         insertedMoney = 0.0;
-
-        // Initialize DBConnect instance
-        dbConnect = DBConnect.getInstance();
-
-        // Retrieve the prices, quantities, sugar quantities, and paper glass quantities from the MySQL database
-        retrievePricesAndQuantitiesFromDatabase();
-    }
-
-    private void retrievePricesAndQuantitiesFromDatabase() {
-        try (Connection connection = dbConnect.getConnection(); 
-            Statement statement = connection.createStatement()) {
-                
-            ResultSet priceResultSet = statement.executeQuery("SELECT beverage_id, price FROM price_table");
-            while (priceResultSet.next()) {
-                int beverageId = priceResultSet.getInt("beverage_id");
-                double price = priceResultSet.getDouble("price");
-                prices.put(beverageId, price);
-            }
-
-            ResultSet quantityResultSet = statement.executeQuery("SELECT beverage_id, quantity FROM quantity_table");
-            while (quantityResultSet.next()) {
-                int beverageId = quantityResultSet.getInt("beverage_id");
-                int quantity = quantityResultSet.getInt("quantity");
-                quantities.put(beverageId, quantity);
-            }
-
-            ResultSet sugarQuantityResultSet = statement.executeQuery("SELECT sugar_id, quantity FROM sugar_table");
-            while (sugarQuantityResultSet.next()) {
-                int sugarId = sugarQuantityResultSet.getInt("sugar_id");
-                int quantity = sugarQuantityResultSet.getInt("quantity");
-                sugarQuantities.put(sugarId, quantity);
-            }
-
-            ResultSet paperGlassQuantityResultSet = statement.executeQuery("SELECT paper_glass_id, quantity FROM paper_glass_table");
-            while (paperGlassQuantityResultSet.next()) {
-                int paperGlassId = paperGlassQuantityResultSet.getInt("paper_glass_id");
-                int quantity = paperGlassQuantityResultSet.getInt("quantity");
-                paperGlassQuantities.put(paperGlassId, quantity);
-            }
-        } catch (SQLException e) {
-            System.out.println("Error retrieving prices and quantities from MySQL database: " + e.getMessage());
-        }
     }
 
     public void selectBeverage(int beverageId) {
@@ -81,13 +113,11 @@ public class ButtonPanel {
     }
 
     public void dispenseBeverage() {
+        Map<Integer, Double> prices = queryManager.retrievePrices();
         if (insertedMoney >= prices.get(selectedBeverageId)) {
-            // Check if the beverage is available in the database
-            if (isBeverageAvailable(selectedBeverageId)) {
-                // Check if the selected sugar quantity is available in the database
-                if (isSugarQuantityAvailable(selectedSugarQuantity)) {
-                    // Check if the selected paper glass quantity is available in the database
-                    if (isPaperGlassQuantityAvailable(selectedPaperGlassQuantity)) {
+            if (queryManager.isBeverageAvailable(selectedBeverageId)) {
+                if (queryManager.isSugarQuantityAvailable(selectedSugarQuantity)) {
+                    if (queryManager.isPaperGlassQuantityAvailable(selectedPaperGlassQuantity)) {
                         // Dispense the beverage
                         System.out.println("Dispensing beverage " + selectedBeverageId);
                         insertedMoney -= prices.get(selectedBeverageId);
@@ -106,15 +136,16 @@ public class ButtonPanel {
         }
     }
 
-    private boolean isBeverageAvailable(int beverageId) {
-        return quantities.get(beverageId) > 0;
+    public void insertMoney(double amount) {
+        insertedMoney += amount;
+        System.out.println("Inserted money: " + amount);
+        System.out.println("Total balance: " + insertedMoney);
     }
 
-    private boolean isSugarQuantityAvailable(int sugarQuantity) {
-        return sugarQuantities.get(1) >= sugarQuantity; // Assuming sugar ID is
-    }
-
-    private boolean isPaperGlassQuantityAvailable(int paperGlassQuantity) {
-        return paperGlassQuantities.get(1) >= paperGlassQuantity; // Assuming paper glass ID is 1
+    public void refundMoney() {
+        System.out.println("Refunding money: " + insertedMoney);
+        insertedMoney = 0.0;
     }
 }
+
+ */
