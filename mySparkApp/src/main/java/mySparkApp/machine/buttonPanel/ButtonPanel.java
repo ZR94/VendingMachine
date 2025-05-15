@@ -1,24 +1,27 @@
-package mySparkApp;
+package mySparkApp.machine.buttonPanel;
 
 import java.util.Map;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.MqttPersistenceException;
+
+import com.google.gson.Gson;
+
 import org.eclipse.paho.client.mqttv3.MqttException;
 
 public class ButtonPanel {
-    private MqttClient mqttClient;
-    private String topicDispenser;
-    private String topicCashRegister;
-    private String topicSupport;
+
+    static Gson gson = new Gson();
     String serverUrl = "ssl://localhost:8883";
+    private MqttClient mqttClient;
+    private ButtonPanelDao buttonPanelDao;
 
     public ButtonPanel() throws MqttException {
         mqttClient = new MqttClient(serverUrl, "ButtonPanel");
-        topicDispenser = "dispenser/status";
-        topicCashRegister = "cashregister/status";
-        topicSupport = "support/alert";
+
     }
+
+/* 
 
     public void selectBeverage(String beverage) {
         // Controlla se la macchina è in stato guasto
@@ -83,8 +86,18 @@ public class ButtonPanel {
 
     private void sendAlertToSupport(String message) {
         // Pubblica un messaggio MQTT per avvisare la classe Support
-        mqttClient.publish(topicSupport, new MqttMessage(message.getBytes()));
+        try {
+            mqttClient.publish(topicSupport, new MqttMessage(message.getBytes()));
+        } catch (MqttPersistenceException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (MqttException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
+*/
+
 }
 
 /*

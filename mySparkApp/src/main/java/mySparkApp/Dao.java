@@ -1,119 +1,130 @@
 package mySparkApp;
 
+import java.security.SecureRandom;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Base64;
+import java.util.UUID;
 
 public class Dao {
-    private DBConnect dbConnect; // DBConnect instance for database connection
+    
+    public String retrieveDbNameByIdMachine(int idMachine) throws SQLException {
+        // Esegue una query per recuperare il dbName dal database
+        final String query = "SELECT dbName FROM coffeeMachine WHERE idMachine = ?";
 
-    public Dao() {
-        // Initialize DBConnect instance
-        dbConnect = DBConnect.getInstance();
-    }
+        try {
+            Connection conn = DBConnect.getInstance().getConnectionServer();
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            pstmt.setInt(1, idMachine);
+            ResultSet rs = pstmt.executeQuery();
+            conn.close();
 
-    public Map<Integer, Double> retrievePrices() {
-        Map<Integer, Double> prices = new HashMap<>();
-        try (Connection connection = dbConnect.getConnection(); Statement statement = connection.createStatement(); 
-            ResultSet resultSet = statement.executeQuery("SELECT beverage_id, price FROM price_table")) {
-            while (resultSet.next()) {
-                int beverageId = resultSet.getInt("beverage_id");
-                double price = resultSet.getDouble("price");
-                prices.put(beverageId, price);
+            if (rs.next()) {
+                return rs.getString("dbName");
+            } else {
+                throw new SQLException("Machine non trovata");
             }
+
         } catch (SQLException e) {
-            System.out.println("Error retrieving prices from MySQL database: " + e.getMessage());
+            System.out.println("Errore durante la query: " + e.getMessage());
+            throw e;
         }
-        return prices;
     }
 
-    public Map<Integer, Integer> retrieveQuantities() {
-        Map<Integer, Integer> quantities = new HashMap<>();
-        try (Connection connection = dbConnect.getConnection(); Statement statement = connection.createStatement(); 
-            ResultSet resultSet = statement.executeQuery("SELECT beverage_id, quantity FROM quantity_table")) {
-            while (resultSet.next()) {
-                int beverageId = resultSet.getInt("beverage_id");
-                int quantity = resultSet.getInt("quantity");
-                quantities.put(beverageId, quantity);
+    public void createNewCoffeeMachineDb(int institutionId) throws SQLException {
+        String uuid = UUID.randomUUID().toString();
+        String dbName = "coffeeMachineDb_" + uuid.replace("-", "_");
+        String dbUser = "user_" + uuid.substring(0, 8);
+        String dbPassword = generateSecurePassword();
+
+        try (Connection conn = DBConnect.getInstance().getConnection();
+                Statement stmt = conn.createStatement()) {
+
+            // Crea il database
+            stmt.executeUpdate("CREATE DATABASE " + dbName);
+
+            // Crea utente e permessi
+            stmt.executeUpdate("CREATE USER '" + dbUser + "'@'%' IDENTIFIED BY '" + dbPassword + "'");
+            stmt.executeUpdate("GRANT ALL PRIVILEGES ON " + dbName + ".* TO '" + dbUser + "'@'%'");
+            
+            // Crea tabelle nel nuovo database
+            this.createNewDbSchema(dbName);
+
+            conn.close();
+            
+            Connection connServer = DBConnect.getInstance().getConnectionServer();
+            // Registra nel management database
+            
+            String insertSql = "INSERT INTO coffeeMachine (idMachineInstitute, dbName, dbUser, dbPassword) " +
+                                "VALUES (?, ?, ?, ?)";
+            
+            try (PreparedStatement pstmt = connServer.prepareStatement(insertSql)) {
+                pstmt.setInt(1, institutionId);
+                pstmt.setString(2, dbName);
+                pstmt.setString(3, dbUser);
+                pstmt.setString(4, dbPassword);
+                pstmt.executeUpdate();
+
+                connServer.close();
+            } catch (SQLException e) {
+                System.out.println("Errore: " + e.getMessage());
             }
+            
+
         } catch (SQLException e) {
-            System.out.println("Error retrieving quantities from MySQL database: " + e.getMessage());
+            System.out.println("Errore: " + e.getMessage());
         }
-        return quantities;
     }
 
-    public Map<Integer, Integer> retrieveSugarQuantities() {
-        Map<Integer, Integer> sugarQuantities = new HashMap<>();
-        try (Connection connection = dbConnect.getConnection(); Statement statement = connection.createStatement(); 
-            ResultSet resultSet = statement.executeQuery("SELECT sugar_id, quantity FROM sugar_table")) {
-            while (resultSet.next()) {
-                int sugarId = resultSet.getInt("sugar_id");
-                int quantity = resultSet.getInt("quantity");
-                sugarQuantities.put(sugarId, quantity);
+    public void createNewDbSchema(String dbName) throws SQLException {
+        String[] createTables = {
+            "CREATE TABLE " + dbName + ".pods ("
+                + "idProduct INTEGER PRIMARY KEY, AUTO_INCREMENT, "
+                + "quantity INT NOT NULL CHECK (quantity >= 0), "
+                + "last_restock DATETIME)",
+                
+            "CREATE TABLE " + dbName + ".cashRegister ("
+                + "idCashRegister INTEGER PRIMARY KEY AUTO_INCREMENT, "
+                + "idCashRegisterProduct INT NOT NULL, "
+                + "quantity INT NOT NULL, "
+                + "price DECIMAL(5,2) NOT NULL, "
+                + "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)",
+
+            "CREATE TABLE " + dbName + ".price ("
+                + "idPrice INTEGER PRIMARY KEY AUTO_INCREMENT, "
+                + "idPriceProduct INT NOT NULL, "
+                + "prezzo DECIMAL(5,2) NOT NULL, "
+                + "data_inizio DATE NOT NULL, "
+                + "data_fine DATE, "
+                + "FOREIGN KEY (idPriceProduct) REFERENCES " + dbName + ".pods(idProduct))" ,   
+                
+            "CREATE TABLE " + dbName + ".maintenance ("
+                + "idMaintenance INTEGER PRIMARY KEY AUTO_INCREMENT, "
+                + "description TEXT, "
+                + "resolved BOOLEAN DEFAULT false, "
+                + "created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+        };
+
+        try (Connection conn = DBConnect.getInstance().getConnection();
+                Statement stmt = conn.createStatement()) {
+            for (String sql : createTables) {
+                stmt.executeUpdate(sql);
             }
+            conn.close(); 
         } catch (SQLException e) {
-            System.out.println("Error retrieving sugar quantities from MySQL database: " + e.getMessage());
+            System.out.println("Errore: " + e.getMessage());
+            throw e;
         }
-        return sugarQuantities;
     }
 
-    public Map<Integer, Integer> retrievePaperGlassQuantities() {
-        Map<Integer, Integer> paperGlassQuantities = new HashMap<>();
-        try (Connection connection = dbConnect.getConnection(); 
-            Statement statement = connection.createStatement(); 
-            ResultSet resultSet = statement.executeQuery("SELECT paper_glass_id, quantity FROM paper_glass_table")) {
-            while (resultSet.next()) {
-                int paperGlassId = resultSet.getInt("paper_glass_id");
-                int quantity = resultSet.getInt("quantity");
-                paperGlassQuantities.put(paperGlassId, quantity);
-            }
-        } catch (SQLException e) {
-            System.out.println("Error retrieving paper glass quantities from MySQL database: " + e.getMessage());
-        }
-        return paperGlassQuantities;
+        private String generateSecurePassword() {
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = new byte[12];
+        random.nextBytes(bytes);
+        return new String(Base64.getEncoder().encode(bytes));
     }
 
-    public boolean isBeverageAvailable(int beverageId) {
-        try (Connection connection = dbConnect.getConnection(); Statement statement = connection.createStatement(); 
-            ResultSet resultSet = statement.executeQuery("SELECT quantity FROM quantity_table WHERE beverage_id = " + beverageId)) {
-            if (resultSet.next()) {
-                int quantity = resultSet.getInt("quantity");
-                return quantity > 0;
-            }
-        } catch (SQLException e) {
-            System.out.println("Error checking beverage availability: " + e.getMessage());
-        }
-        return false;
-    }
-
-    public boolean isSugarQuantityAvailable(int sugarQuantity) {
-        try (Connection connection = dbConnect.getConnection(); 
-            Statement statement = connection.createStatement(); 
-            ResultSet resultSet = statement.executeQuery("SELECT quantity FROM sugar_table WHERE sugar_id = 1")) {
-            if (resultSet.next()) {
-                int quantity = resultSet.getInt("quantity");
-                return quantity >= sugarQuantity;
-            }
-        } catch (SQLException e) {
-            System.out.println("Error checking sugar quantity availability: " + e.getMessage());
-        }
-        return false;
-    }
-
-    public boolean isPaperGlassQuantityAvailable(int paperGlassQuantity) {
-        try (Connection connection = dbConnect.getConnection(); 
-            Statement statement = connection.createStatement(); 
-            ResultSet resultSet = statement.executeQuery("SELECT quantity FROM paper_glass_table WHERE paper_glass_id = 1")) {
-            if (resultSet.next()) {
-                int quantity = resultSet.getInt("quantity");
-                return quantity >= paperGlassQuantity;
-            }
-        } catch (SQLException e) {
-            System.out.println("Error checking paper glass quantity availability: " + e.getMessage());
-        }
-        return false;
-    }
 }

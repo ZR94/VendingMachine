@@ -29,14 +29,15 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
 import org.eclipse.paho.client.mqttv3.*;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
+
+import com.google.gson.Gson;
 
 public class MySparkApp {
 	
 
     public static void main(String[] args) {
 
+		Gson gson = new Gson();
     	String serverUrl = "ssl://localhost:8883";
     	String home = System.getProperty("user.home");
 		String caFilePath = home + "/Documents/VisualStudioCodeProject/MachineCoffeeProject/mySparkApp/TLS/ca/ca.crt";
