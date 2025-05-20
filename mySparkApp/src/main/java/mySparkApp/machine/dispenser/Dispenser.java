@@ -51,8 +51,6 @@ public class Dispenser implements MqttCallback{
         
     }
 
-
-
     @Override
     public void deliveryComplete(IMqttDeliveryToken token) {
         // TODO Auto-generated method stub

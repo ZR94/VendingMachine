@@ -81,28 +81,30 @@ public class Dao {
 
     public void createNewDbSchema(String dbName) throws SQLException {
         String[] createTables = {
-            "CREATE TABLE " + dbName + ".pods ("
-                + "idProduct INTEGER PRIMARY KEY, AUTO_INCREMENT, "
+            "CREATE TABLE " + dbName + ".pod ("
+                + "idPod INTEGER PRIMARY KEY, AUTO_INCREMENT, "
+                + "name VARCHAR(100) NOT NULL, "
                 + "quantity INT NOT NULL CHECK (quantity >= 0), "
                 + "last_restock DATETIME)",
+
+            "CREATE TABLE " + dbName + ".beverage ("
+                + "idBeverage INTEGER PRIMARY KEY, AUTO_INCREMENT, "
+                + "idBeveragePod INT NOT NULL, "
+                + "name VARCHAR(100) NOT NULL, "
+                + "price DECIMAL(5,2) NOT NULL, "
+                + "podQuantity INT NOT NULL CHECK (quantity >= 0), "
+                + "FOREIGN KEY (idBeveragePod) REFERENCES " + dbName + ".pod(idPod))" ,   
                 
             "CREATE TABLE " + dbName + ".cashRegister ("
                 + "idCashRegister INTEGER PRIMARY KEY AUTO_INCREMENT, "
-                + "idCashRegisterProduct INT NOT NULL, "
+                + "idCashRegisterPod INT NOT NULL, "
                 + "quantity INT NOT NULL, "
-                + "price DECIMAL(5,2) NOT NULL, "
+                + "credit DECIMAL(5,2) NOT NULL, "
                 + "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)",
-
-            "CREATE TABLE " + dbName + ".price ("
-                + "idPrice INTEGER PRIMARY KEY AUTO_INCREMENT, "
-                + "idPriceProduct INT NOT NULL, "
-                + "prezzo DECIMAL(5,2) NOT NULL, "
-                + "data_inizio DATE NOT NULL, "
-                + "data_fine DATE, "
-                + "FOREIGN KEY (idPriceProduct) REFERENCES " + dbName + ".pods(idProduct))" ,   
-                
+     
             "CREATE TABLE " + dbName + ".maintenance ("
                 + "idMaintenance INTEGER PRIMARY KEY AUTO_INCREMENT, "
+                + "status TEXT, "
                 + "description TEXT, "
                 + "resolved BOOLEAN DEFAULT false, "
                 + "created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"

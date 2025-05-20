@@ -7,7 +7,7 @@ import com.google.gson.Gson;
 
 public class CashRegister {
 
-    private Gson gson = new Gson();
+    static Gson gson = new Gson();
     String serverUrl = "ssl://localhost:8883";
     private MqttClient mqttClient;
     private CashRegisterDao cashRegisterDao;

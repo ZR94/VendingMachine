@@ -42,10 +42,10 @@ public class MySparkApp {
     	String home = System.getProperty("user.home");
 		String caFilePath = home + "/Documents/VisualStudioCodeProject/MachineCoffeeProject/mySparkApp/TLS/ca/ca.crt";
     	String clientCrtFilePath = home + "/Documents/VisualStudioCodeProject/MachineCoffeeProject/mySparkApp/TLS/client/client.crt";
-    	String clientKeyFilePath = home + "/Documents/VisualStudioCodeProject/MachineCoffeeProject/mySparkApp/TLS/client/client.key"; 
-
-    	
+    	String clientKeyFilePath = home + "/Documents/VisualStudioCodeProject/MachineCoffeeProject/mySparkApp/TLS/client/client.key";
 		MqttClient client;
+
+
 		try {
 			client = new MqttClient(serverUrl, "2");
 			MqttConnectOptions options = new MqttConnectOptions();
@@ -58,20 +58,9 @@ public class MySparkApp {
 			SSLSocketFactory socketFactory = getSocketFactory(caFilePath, clientCrtFilePath, clientKeyFilePath, "");
 			options.setSocketFactory(socketFactory);
 
-			System.out.println("starting connect the server...");
 			client.connect(options);
-			System.out.println("connected!");
-			Thread.sleep(1000);
-			String TOPIC = "/pissir/prova";
-			MqttTopic timeTopic = client.getTopic(TOPIC);
-			String body = "ciao a tutti";
-			timeTopic.publish(new MqttMessage(body.getBytes()));
-			System.out.println("Published: " + body + " on topic: " + TOPIC);
-			Thread.sleep(5000);
 
 			client.disconnect();
-			System.out.println("disconnected!");
-
 
 		} catch (MqttException e) {
 			e.printStackTrace();
