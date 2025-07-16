@@ -1,8 +1,12 @@
 package mySparkApp.machine.buttonPanel;
 
+import java.util.List;
 import java.util.Scanner;
 
 import org.eclipse.paho.client.mqttv3.MqttException;
+
+import mySparkApp.machine.Beverage;
+import mySparkApp.machine.utils.MqttModClient;
 
 public class ButtonPanelView {
 
@@ -10,10 +14,11 @@ public class ButtonPanelView {
     private final Scanner scanner;
     private ButtonPanel buttonPanel;
 
-    public ButtonPanelView(int idMachine) throws MqttException {
+    public ButtonPanelView(int idMachine) {
         this.idMachine = idMachine;
         this.scanner = new Scanner(System.in);
-        this.buttonPanel = new ButtonPanel();
+		buttonPanel = new ButtonPanel(idMachine);
+		buttonPanel.setupMQTT(); 
     }
 
     public static void main(String[] args) throws MqttException {
@@ -32,10 +37,10 @@ public class ButtonPanelView {
 		}
 
         ButtonPanelView view = new ButtonPanelView(idMachine);
-        view.runDisplay(idMachine);
+        view.runDisplay();
 	}
 
-    public void runDisplay(int idMachine) {
+    public void runDisplay() {
 		System.out.println("===== Display Started =====");
 		System.out.println("Coffe machine ID: " + idMachine);
 		boolean exit = false;
@@ -78,28 +83,93 @@ public class ButtonPanelView {
     }
 
     private void insertCoin() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'insertCoin'");
+		if (!isMachineActive()) {
+	        System.out.println("[DisplayManager] La macchina NON è in stato ACTIVE: operazione non disponibile.");
+	        return;
+	    }
+		
+		System.out.print("Inserisci l'importo in euro (es. 0.50, 1, 2): ");
+		try {
+			double importo = Double.parseDouble(scanner.nextLine());
+			System.out.println("Hai inserito: " + importo + " euro");
+			
+			buttonPanel.handleInsertCoin(importo);
+			// Simulazione di risposta:
+			System.out.println("(Simulazione) - Credito aggiornato!");
+		} catch (NumberFormatException e) {
+			System.out.println("Formato importo non valido!");
+		}
     }
 
     private void showBalance() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'showBalance'");
+		double credito = buttonPanel.getCurrentCredit();
+		System.out.println("Credito attuale: " + credito + " euro");
     }
 
     private void selectBeverage() {
         // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'selectBeverage'");
+		if (!isMachineActive()) {
+	        System.out.println("[DisplayManager] La macchina NON è in stato ACTIVE: operazione non disponibile.");
+	        return;
+	    }
+		
+		System.out.println("\n-- Seleziona la bevanda desiderata --");
+		// carico la lista delle bevande dal db
+		List<Beverage> list = buttonPanel.getAllBeverage(idMachine);
+		System.out.println("Bevande Disponibili:");
+		list.forEach(beverage -> {
+			System.out.println("   [" + beverage.getIdBeverage() + "] " + beverage.getName() + " ("
+					+ beverage.getPrice() + " euro)");
+		});
+		System.out.print("Scelta: ");
+
+		int scelta;
+		try {
+			scelta = Integer.parseInt(scanner.nextLine());
+		} catch (NumberFormatException e) {
+			scelta = -1;
+		}
+
+		if (scelta < 1 || scelta > list.size()) {
+			System.out.println("Selezione non valida!");
+			return;
+		}
+		
+		String resultChoice = buttonPanel.handleBeverageChoice(scelta);
+
+		// Eventualmente chiedi zucchero, ecc...
+		// Qui facciamo una simulazione
+		//System.out.println("(Simulazione) - Verifico credito disponibile e cialde in magazzino...");
+
+		// Esempio esito fittizio
+		//boolean erogazioneOk = true; // In futuro deciderai in base al controllo effettivo
+
+		if ("OK".equals(resultChoice)) {
+			System.out.println("Bevanda erogata correttamente!");
+		} else {
+			System.out.println("Impossibile erogare la bevanda: " + resultChoice);
+		}
     }
 
     private void refund() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'refund'");
+		double creditoRestituito = buttonPanel.resetCurrCredit();
+		System.out.println("Restituiti " + creditoRestituito + " euro al cliente.");
+       
     }
 
     private int readchoice() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'readchoice'");
+		int scelta;
+		try {
+			scelta = Integer.parseInt(scanner.nextLine());
+		} catch (NumberFormatException e) {
+			scelta = -1; // Indichiamo scelta non valida
+		}
+		return scelta;
     }
+
+	private boolean isMachineActive() {
+	    String status = buttonPanel.getMachineStatus();
+	    return "active".equalsIgnoreCase(status);
+	}
 
 }

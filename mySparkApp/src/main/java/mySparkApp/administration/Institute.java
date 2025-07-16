@@ -1,4 +1,4 @@
-package mySparkApp;
+package mySparkApp.administration;
 
 
 public class Institute {

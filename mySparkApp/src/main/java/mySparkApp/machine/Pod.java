@@ -4,14 +4,14 @@ public class Pod {
 
     private int idPod;
     private String name;
-    private int CurrentQty;
-    private int MaxQty;
+    private int currentQty;
+    private int maxQty;
     
-    public Pod(int idPod, String name, int CurrentQty, int MaxQty) {
+    public Pod(int idPod, String name, int currentQty, int maxQty) {
         this.idPod = idPod;
         this.name = name;
-        this.CurrentQty = CurrentQty;
-        this.MaxQty = MaxQty;
+        this.currentQty = currentQty;
+        this.maxQty = maxQty;
     }
 
     public int getIdPod() {
@@ -30,21 +30,48 @@ public class Pod {
         this.name = name;
     }
 
-    public int getCurrentQty() {
-        return CurrentQty;
+    public int getcurrentQty() {
+        return currentQty;
     }
 
-    public void setCurrentQty(int currentQty) {
-        CurrentQty = currentQty;
+    public void setcurrentQty(int currentQty) {
+        this.currentQty = currentQty;
     }
 
-    public int getMaxQty() {
-        return MaxQty;
+    public int getmaxQty() {
+        return maxQty;
     }
 
-    public void setMaxQty(int maxQty) {
-        MaxQty = maxQty;
+    public void setmaxQty(int maxQty) {
+        this.maxQty = maxQty;
     }
 
-    
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Pod other = (Pod) obj;
+        if (idPod != other.idPod)
+            return false;
+        if (name == null) {
+            if (other.name != null)
+                return false;
+        } else if (!name.equals(other.name))
+            return false;
+        if (currentQty != other.currentQty)
+            return false;
+        if (maxQty != other.maxQty)
+            return false;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "Pod [idPod=" + idPod + ", name=" + name + ", currentQty=" + currentQty + ", maxQty=" + maxQty + "]";
+    }
+
 }

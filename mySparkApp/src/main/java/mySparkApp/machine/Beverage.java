@@ -5,17 +5,15 @@ public class Beverage {
     private int idBeverage;
     private String name;
     private double price;
-    private Pod pod;
-    private int podQty;
+
 
     public Beverage() {}
 
-    public Beverage(int idBeverage, String name, double price, Pod pod, int podQty) {
+    public Beverage(int idBeverage, String name, double price) {
         this.idBeverage = idBeverage;
         this.name = name;
         this.price = price;
-        this.pod = pod;
-        this.podQty = podQty;
+
     }
 
     public int getIdBeverage() {
@@ -42,22 +40,30 @@ public class Beverage {
         this.price = price;
     }
 
-    public Pod getPod() {
-        return pod;
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Beverage other = (Beverage) obj;
+        if (idBeverage != other.idBeverage)
+            return false;
+        if (name == null) {
+            if (other.name != null)
+                return false;
+        } else if (!name.equals(other.name))
+            return false;
+        if (Double.doubleToLongBits(price) != Double.doubleToLongBits(other.price))
+            return false;
+        return true;
     }
 
-    public void setPod(Pod pod) {
-        this.pod = pod;
+    @Override
+    public String toString() {
+        return "Beverage [idBeverage=" + idBeverage + ", name=" + name + ", price=" + price + "]";
     }
-
-    public int getPodQty() {
-        return podQty;
-    }
-
-    public void setPodQty(int podQty) {
-        this.podQty = podQty;
-    }
-
-    
-
+  
 }

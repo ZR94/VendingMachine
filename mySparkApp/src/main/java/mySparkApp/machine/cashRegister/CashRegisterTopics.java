@@ -5,21 +5,21 @@ public class CashRegisterTopics {
     final static String DEFAULT_TOPIC = "/machine/%d";
 
     //Publish
-    String CASHREGISTER_STATUS = DEFAULT_TOPIC + " /support/statusUpdate/notify";
+    protected static final String CASHREGISTER_STATUS = DEFAULT_TOPIC + " /support/statusUpdate/notify";
 
-    String CASHREGISTER_CHANGE = DEFAULT_TOPIC + " /buttonPanel/change/response";
+    protected static final String CASHREGISTER_REFUND_RESPONSE = DEFAULT_TOPIC + " /buttonPanel/refund/response";
 
-    String CASHREGISTER_CURRENTCREDIT_RESPONSE = DEFAULT_TOPIC + " /buttonPanel/credit/response";
+    protected static final String CASHREGISTER_CURRENTCREDIT_RESPONSE = DEFAULT_TOPIC + " /buttonPanel/credit/response";
 
-    String CASHREGISTER_CHECKCREDIT_RESPONSE = DEFAULT_TOPIC + " /dispenser/check/response";
+    protected static final String CASHREGISTER_CHECKCREDIT_RESPONSE = DEFAULT_TOPIC + " /dispenser/check/response";
 
     //Subscribe
-    String CASHREGISTER_PAYMENT = DEFAULT_TOPIC + " /cashRegister/payment/insert/request";
+    protected static final String CASHREGISTER_PAYMENT = DEFAULT_TOPIC + " /cashRegister/payment/insert/request";
 
-    String CASHREGISTER_REFUND = DEFAULT_TOPIC + " /cashRegister/refund/request";
+    protected static final String CASHREGISTER_REFUND_REQUEST = DEFAULT_TOPIC + " /cashRegister/refund/request";
 
-    String CASHREGISTER_CURRENTCREDIT_REQUEST = DEFAULT_TOPIC + " /cashRegister/credit/request";
+    protected static final String CASHREGISTER_CURRENTCREDIT_REQUEST = DEFAULT_TOPIC + " /cashRegister/credit/request";
     
-    String CASHREGISTER_CHECKCREDIT_REQUEST = DEFAULT_TOPIC + " /cashRegister/check/request";
+    protected static final String CASHREGISTER_CHECKCREDIT_REQUEST = DEFAULT_TOPIC + " /cashRegister/check/request";
 
 }

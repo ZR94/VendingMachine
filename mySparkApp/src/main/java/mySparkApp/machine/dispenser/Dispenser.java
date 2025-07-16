@@ -1,5 +1,7 @@
 package mySparkApp.machine.dispenser;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,46 +17,129 @@ import com.google.gson.Gson;
 
 import mySparkApp.DBConnect;
 import mySparkApp.Dao;
+import mySparkApp.machine.dispenser.DispenserDao;
+import mySparkApp.machine.cashRegister.CashRegisterTopics;
 import mySparkApp.machine.support.SupportDao;
+import mySparkApp.machine.utils.MqttModClient;
 
-public class Dispenser implements MqttCallback{
+public class Dispenser {
 
     private Gson gson = new Gson();
-    String serverUrl = "ssl://localhost:8883";
-    private MqttClient mqttClient;
-    private DispenserDao dispenserDao;
+    private static int machine_id = 100;
+    private static MqttModClient mqttClient;
+    private static DispenserDao dispenserDao;
+    private static int idBeverageSelected;
+    
 
-    public Dispenser() {
-        try {
-            mqttClient = new MqttClient(serverUrl, "dispenser-client");
-            mqttClient.setCallback(this);
+    public static void main(String[] args) {
+		System.out.println("***Beverage Manager Console ID: " + machine_id + " ***");
+		dispenserDao = new DispenserDao();
+		setupMQTT();
+	}
+
+    public static void setupMQTT() {
+		// MQTT Client Configuration
+		// da impostare poi con ssl al posto di tcp quando si implementa connessione TLS
+		String serverUrl = "ssl://localhost:8883";
+		
+		String caFilePath = Paths.get("").toAbsolutePath()
+                .resolve("certs")
+                .resolve("ca")
+                .resolve("ca.crt")
+                .toString();
+
+        String clientCrtFilePath = Paths.get("").toAbsolutePath()
+                .resolve("certs")
+                .resolve("client")
+                .resolve("client.crt")
+                .toString();
+
+        String clientKeyFilePath = Paths.get("").toAbsolutePath()
+                .resolve("certs")
+                .resolve("client")
+                .resolve("client.key")
+                .toString();
+       
+        String mqttUserName = "beverage"; String mqttPassword = "beverage";
+		 
+		String clientId = "Beverage Service :" + machine_id;
+
+		try {
+            mqttClient = new MqttModClient(serverUrl, clientId, mqttUserName, mqttPassword, caFilePath, clientCrtFilePath, clientKeyFilePath);
             mqttClient.connect();
-
-            mqttClient.subscribe("id/sensors/cash");
+            setupSubscriptions();
         } catch (MqttException e) {
-            System.out.println("Error connecting to MQTT broker: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+		
+	    
     }
 
-    public void receiveMessage(String topic, MqttMessage message) {
-        System.out.println("Received message on topic " + topic + ": " + new String(message.getPayload()));
-    }
+    private static void setupSubscriptions() throws MqttException {
 
-    @Override
-    public void connectionLost(Throwable cause) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'connectionLost'");
-    }
+        // 1) Sottoscrivo la richiesta di scelta bevanda
+        mqttClient.subscribe(String.format(DispenserTopics.DISPENSER_CHOICE_REQUEST, machine_id), (topic, msg) -> {
+            String payloadStringRec = new String(msg.getPayload(), StandardCharsets.UTF_8);
+            int idBeverage = Integer.parseInt(payloadStringRec);
+            idBeverageSelected = idBeverage;
+            
 
-    @Override
-    public void messageArrived(String topic, MqttMessage message) throws Exception {
-        
-    }
+            System.out.println("[BeverageManager] Bevanda scelta: " + idBeverage);
 
-    @Override
-    public void deliveryComplete(IMqttDeliveryToken token) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'deliveryComplete'");
+            // Verifico se le cialde sono disponibili
+            boolean enoughPods = dispenserDao.checkPods(machine_id,idBeverage);
+            if (!enoughPods) {
+                // Rispondo direttamente al display con "NOT_ENOUGH_PODS"
+                byte[] payloadResp = "NOT_ENOUGH_PODS".getBytes(StandardCharsets.UTF_8);
+                mqttClient.publish(String.format(DispenserTopics.DISPENSER_CHOICE_RESPONSE, machine_id), payloadResp);
+            } else {
+                // Se ci sono abbastanza cialde, prendo il prezzo bevanda
+                double price = dispenserDao.getBeveragePrice(machine_id, idBeverage);
+
+                // Invio richiesta al cashboxService per verificare il credito
+                // (payload = prezzo bevanda)
+                String priceStr = String.valueOf(price);
+                byte[] payloadPrice = priceStr.getBytes(StandardCharsets.UTF_8);
+                mqttClient.publish(String.format(DispenserTopics.DISPENSER_CHECKCREDIT_REQUEST, machine_id), payloadPrice);
+
+                // Mi aspetto una risposta su "BEVERAGE_VERIFY_CREDIT_RES"
+                // (vedi la subscribe più in basso)
+            }
+        });
+
+        // 2) Sottoscrivo la risposta del cashboxService per la verifica credito
+        mqttClient.subscribe(String.format(DispenserTopics.DISPENSER_CHECKCREDIT_RESPONSE, machine_id), (topic, msg) -> {
+            String resultCreditCheck = new String(msg.getPayload(), StandardCharsets.UTF_8);
+            // Il cashboxService può mandare "OK" oppure "INSUFFICIENT_CREDIT"
+            System.out.println("[BeverageManager] Verifica credito: " + resultCreditCheck);
+
+            if ("OK".equals(resultCreditCheck)) {
+                int lastidBeverage = idBeverageSelected; // recupero in qualche modo
+                dispenserDao.deductPodsForBeverage(machine_id,lastidBeverage);
+                
+                if (dispenserDao.isAnyPodLow()) {
+                    System.out.println("[BeverageManager] Rilevato numero cialde <= 5, segnalo low_pods all'Assistance.");
+
+                    byte[] payload = "low_pods".getBytes(StandardCharsets.UTF_8);
+                    mqttClient.publish(
+                        String.format(DispenserTopics.DISPENSER_STATUS, machine_id), 
+                        payload
+                    );
+                }
+
+                // Erogazione riuscita
+                byte[] payloadResp = "OK".getBytes(StandardCharsets.UTF_8);
+                mqttClient.publish(String.format(DispenserTopics.DISPENSER_CHOICE_RESPONSE, machine_id), payloadResp);
+
+            } else {
+                // Credito insufficiente
+                byte[] payloadResp = "INSUFFICIENT_CREDIT".getBytes(StandardCharsets.UTF_8);
+                mqttClient.publish(String.format(DispenserTopics.DISPENSER_CHOICE_REQUEST, machine_id), payloadResp);
+            }
+        });
+
     }
 
 }

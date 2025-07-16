@@ -15,7 +15,6 @@ public class DBConnect {
     static private final String user = "root";
     static private final String password = "123456Zz";
     private static DBConnect instance = null;
-    private static Dao dao = new Dao();
 
     private DBConnect() {}
 
@@ -60,7 +59,7 @@ public class DBConnect {
      */
     public Connection getConnectionByIdMachine(int idMachine) throws SQLException {
 
-        String result = dao.retrieveDbNameByIdMachine(idMachine);
+        String result = Dao.getDbNameFromIdMachine(idMachine);
         String dbName = "jdbc:mysql://localhost:3306/" + result;
         
         return DriverManager.getConnection(dbName, user, password);

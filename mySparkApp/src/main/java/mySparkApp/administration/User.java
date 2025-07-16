@@ -1,12 +1,11 @@
-package mySparkApp;
+package mySparkApp.administration;
 
 public class User {
     
-    private int userId;
+    private int idUser;
     private String username;
     private String password;
     private Role role;
-    
     
     public User(String username, String password, Role role) {
         this.username = username;
@@ -14,39 +13,33 @@ public class User {
         this.role = role;
     }
 
-
-    public User(int userId, String username, String password, Role role) {
-        this.userId = userId;
+    public User(int idUser, String username, String password, Role role) {
+        this.idUser = idUser;
         this.username = username;
         this.password = password;
         this.role = role;
     }
 
-
-    public int getUserId() {
-        return userId;
+    public int getidUser() {
+        return idUser;
     }
 
     public String getUsername() {
         return username;
     }
 
-
     public String getPassword() {
         return password;
     }
-
 
     public Role getRole() {
         return role;
     }
 
-
     @Override
     public String toString() {
-        return "User [userId=" + userId + ", username=" + username + ", password=" + password + ", role=" + role + "]";
+        return "User [idUser=" + idUser + ", username=" + username + ", password=" + password + ", role=" + role + "]";
     }
-
 
     @Override
     public boolean equals(Object obj) {
@@ -57,7 +50,7 @@ public class User {
         if (getClass() != obj.getClass())
             return false;
         User other = (User) obj;
-        if (userId != other.userId)
+        if (idUser != other.idUser)
             return false;
         if (username == null) {
             if (other.username != null)
@@ -73,6 +66,5 @@ public class User {
             return false;
         return true;
     }
-
 
 }

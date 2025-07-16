@@ -5,13 +5,17 @@ import static spark.Spark.options;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.Security;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
+import java.util.concurrent.CountDownLatch;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -33,27 +37,31 @@ import org.eclipse.paho.client.mqttv3.MqttPersistenceException;
 
 import com.google.gson.Gson;
 
+import mySparkApp.machine.Beverage;
+import mySparkApp.machine.utils.MqttModClient;
+
 import org.eclipse.paho.client.mqttv3.MqttException;
 
 public class ButtonPanel {
 
-    static Gson gson = new Gson();
-    String serverUrl = "ssl://localhost:8883";
-    private MqttClient mqttClient;
-    private ButtonPanelDao buttonPanelDao;
-    MqttClient client;
+    private final Scanner scanner;
+    private static MqttModClient mqttClient;
+    private static ButtonPanelDao dao;
+    public static int idMachine; //da controllare se funziona
 
-    public ButtonPanel() throws MqttException {
+    public ButtonPanel(int idM) {
 
-        mqttClient = new MqttClient(serverUrl, "ButtonPanel");
+        idMachine = idM;
+		dao = new ButtonPanelDao();
+		this.scanner = new Scanner(System.in);
 
     }
 
     protected void setupMQTT() {
+		
 		// Configurazione del client MQTT
 		// da impostare poi con ssl al posto di tcp quando si implementa connessione TLS
-        client = new MqttClient(serverUrl, "ButtonPanel" + machine_id);
-        MqttConnectOptions options = new MqttConnectOptions();
+		String serverUrl = "ssl://localhost:8883";
 		
 		String caFilePath = Paths.get("").toAbsolutePath()
                 .resolve("certs")
@@ -75,162 +83,181 @@ public class ButtonPanel {
         
         String mqttUserName = "display"; String mqttPassword = "display";
 		 
-		String clientId = "Display Service: " + machine_id;
+		String clientId = "Display Service: " + idMachine;
 
-        SSLSocketFactory socketFactory = getSocketFactory(caFilePath, clientCrtFilePath, clientKeyFilePath, mqttPassword);
-		options.setSocketFactory(socketFactory);
+		try {
+			mqttClient = new MqttModClient(serverUrl, caFilePath,clientCrtFilePath, clientKeyFilePath, mqttUserName, mqttPassword, clientId);
+			mqttClient.connect();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
-		mqttClient.connect();
 	}
 
-    private static SSLSocketFactory getSocketFactory(final String caCrtFile,
-			final String crtFile, final String keyFile, final String password)
-			throws Exception {
-		Security.addProvider(new BouncyCastleProvider());
 
-		// load CA certificate
-		X509Certificate caCert = null;
+    protected String handleInsertCoin(Double value) {
 
-		FileInputStream fis = new FileInputStream(caCrtFile);
-		BufferedInputStream bis = new BufferedInputStream(fis);
-		CertificateFactory cf = CertificateFactory.getInstance("X.509");
+		String payloadString = String.valueOf(value);
+		byte[] payloadBytes = payloadString.getBytes(StandardCharsets.UTF_8);
 
-		while (bis.available() > 0) {
-			caCert = (X509Certificate) cf.generateCertificate(bis);
-			// System.out.println(caCert.toString());
-		}
-
-		// load client certificate
-		bis = new BufferedInputStream(new FileInputStream(crtFile));
-		X509Certificate cert = null;
-		while (bis.available() > 0) {
-			cert = (X509Certificate) cf.generateCertificate(bis);
-			// System.out.println(caCert.toString());
-		}
-
-		// load client private key
-		PEMParser pemParser = new PEMParser(new FileReader(keyFile));
-		Object object = pemParser.readObject();
-		PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder()
-				.build(password.toCharArray());
-		JcaPEMKeyConverter converter = new JcaPEMKeyConverter()
-				.setProvider("BC");
-		KeyPair key;
-		if (object instanceof PEMEncryptedKeyPair) {
-			System.out.println("Encrypted key - we will use provided password");
-			key = converter.getKeyPair(((PEMEncryptedKeyPair) object)
-					.decryptKeyPair(decProv));
-		} else if (object instanceof PrivateKeyInfo) {
-			System.out.println("Unencrypted PrivateKeyInfo key - no password needed");
-			key = converter.getKeyPair(convertPrivateKeyFromPKCS8ToPKCS1((PrivateKeyInfo)object));
-		} else {
-			System.out.println("Unencrypted key - no password needed");
-			key = converter.getKeyPair((PEMKeyPair) object);
-		}
-		pemParser.close();
-
-		// CA certificate is used to authenticate server
-		KeyStore caKs = KeyStore.getInstance(KeyStore.getDefaultType());
-		caKs.load(null, null);
-		caKs.setCertificateEntry("ca-certificate", caCert);
-		TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
-		tmf.init(caKs);
-
-		// client key and certificates are sent to server so it can authenticate us
-		KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-		ks.load(null, null);
-		ks.setCertificateEntry("certificate", cert);
-		ks.setKeyEntry("private-key", key.getPrivate(), password.toCharArray(),
-				new java.security.cert.Certificate[] { cert });
-		KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory
-				.getDefaultAlgorithm());
-		kmf.init(ks, password.toCharArray());
-
-		// finally, create SSL socket factory
-		SSLContext context = SSLContext.getInstance("TLSv1.2");
-		context.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-
-		return context.getSocketFactory();
-	}
-    
-	private static PEMKeyPair convertPrivateKeyFromPKCS8ToPKCS1(PrivateKeyInfo privateKeyInfo) throws Exception {
-
-/* 
-
-    public void selectBeverage(String beverage) {
-        // Controlla se la macchina è in stato guasto
-        if (isMachineFaulty()) {
-            // Comunica alla classe Support che la macchina è guasta
-            sendAlertToSupport("Macchina guasta");
-            return;
-        }
-
-        // Controlla se le capsule per fare le bevande, i bicchierini e lo zucchero richiesto sono disponibili
-        if (!isDispenserAvailable(beverage)) {
-            System.out.println("Dispenser non disponibile");
-            return;
-        }
-
-        // Controlla se la cassa non ha raggiunto la capienza massima
-        if (!isCashRegisterAvailable()) {
-            System.out.println("Cassa piena");
-            return;
-        }
-
-        // Accetta i soldi e depositali in cassa
-        acceptMoney(beverage);
-    }
-
-    private boolean isMachineFaulty() {
-        // Legge lo stato della macchina da un topic MQTT
-        MqttMessage message = mqttClient.getMessage("machine/status");
-        return message.getPayload().equals("guasto");
-    }
-
-    private boolean isDispenserAvailable(String beverage) {
-        // Pubblica un messaggio MQTT per chiedere lo stato del dispenser
-        mqttClient.publish(topicDispenser, new MqttMessage(beverage.getBytes()));
-        // Legge la risposta del dispenser da un topic MQTT
-        MqttMessage message = mqttClient.getMessage(topicDispenser + "/response");
-        return message.getPayload().equals("disponibile");
-    }
-
-    private boolean isCashRegisterAvailable() {
-        // Pubblica un messaggio MQTT per chiedere lo stato della cassa
-        mqttClient.publish(topicCashRegister, new MqttMessage());
-        // Legge la risposta della cassa da un topic MQTT
-        MqttMessage message = mqttClient.getMessage(topicCashRegister + "/response");
-        return message.getPayload().equals("disponibile");
-    }
-
-    private void acceptMoney(String beverage) {
-        // Accetta i soldi e depositali in cassa
-        System.out.println("Soldi accettati");
-        // Pubblica un messaggio MQTT per confermare l'accettazione dei soldi
-        try {
-            mqttClient.publish(topicCashRegister + "/confirm", new MqttMessage(beverage.getBytes()));
-        } catch (MqttPersistenceException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+		try {
+            mqttClient.publish(String.format(ButtonPanelTopics.BP_PAYMENT_REQ, idMachine), payloadBytes);
         } catch (MqttException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-    }
 
-    private void sendAlertToSupport(String message) {
-        // Pubblica un messaggio MQTT per avvisare la classe Support
-        try {
-            mqttClient.publish(topicSupport, new MqttMessage(message.getBytes()));
-        } catch (MqttPersistenceException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+		return "Not implemented";
+	}
+
+	protected List<Beverage> getAllBeverage(int idMachine) {
+
+		List<Beverage> result = null;
+		try {
+			result = dao.getAllBeverages(idMachine);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return result;
+	}
+
+	protected Double getCurrentCredit() {
+
+		// Variabile container per il valore
+		final Double[] resultContainer = new Double[1];
+		// Latch per sincronizzare
+		CountDownLatch latch = new CountDownLatch(1);
+
+		try {
+            mqttClient.subscribe(String.format(ButtonPanelTopics.BP_CURRENTCREDIT_RES, idMachine), (topic, msg) -> {
+            	String creditString = new String(msg.getPayload(), StandardCharsets.UTF_8);
+            	try {
+            		double credit = Double.parseDouble(creditString);
+            		resultContainer[0] = credit;
+            	} catch (NumberFormatException e) {
+            		e.printStackTrace();
+            		resultContainer[0] = null;
+            	} finally {
+            		// Segnalo che ho finito di ricevere ed elaborare il messaggio
+            		latch.countDown();
+            	}
+            });
         } catch (MqttException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-    }
-*/
+
+		try { // 2) Faccio il publish della richiesta
+			String payloadString = "Richiesta credito corrente";
+			byte[] payloadBytes = payloadString.getBytes(StandardCharsets.UTF_8);
+			mqttClient.publish(String.format(ButtonPanelTopics.BP_CURRENTCREDIT_REQ, idMachine), payloadBytes);
+
+			// 3) Blocco finché non arriva la risposta (o finché non scade un timeout
+			latch.await(); // volendo: latch.await(3, TimeUnit.SECONDS);
+
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (MqttException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+		// 4) Ritorno il valore (attenzione a eventuale null)
+		return resultContainer[0];
+	}
+
+	protected Double resetCurrCredit() {
+		// Variabile container per il valore
+		final Double[] resultContainer = new Double[1];
+		// Latch per sincronizzare
+		CountDownLatch latch = new CountDownLatch(1);
+
+		try {
+            mqttClient.subscribe(String.format(ButtonPanelTopics.BP_REFUND_CREDIT_RES, idMachine), (topic, msg) -> {
+            	String creditString = new String(msg.getPayload(), StandardCharsets.UTF_8);
+            	try {
+            		double credit = Double.parseDouble(creditString);
+            		resultContainer[0] = credit;
+            	} catch (NumberFormatException e) {
+            		e.printStackTrace();
+            		resultContainer[0] = null;
+            	} finally {
+            		// Segnalo che ho finito di ricevere ed elaborare il messaggio
+            		latch.countDown();
+            	}
+            });
+        } catch (MqttException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+		try { // 2) Faccio il publish della richiesta
+			String payloadString = "Richiesta recupero credito";
+			byte[] payloadBytes = payloadString.getBytes(StandardCharsets.UTF_8);
+			mqttClient.publish(String.format(ButtonPanelTopics.BP_REFUND_CREDIT_REQ, idMachine), payloadBytes);
+
+			// 3) Blocco finché non arriva la risposta (o finché non scade un timeout
+			latch.await(); // volendo: latch.await(3, TimeUnit.SECONDS);
+
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (MqttException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+		// 4) Ritorno il valore (attenzione a eventuale null)
+		return resultContainer[0];
+	}
+
+	protected String handleBeverageChoice(int choice) {
+
+		// Variabile container per il valore di ritorno
+		final String[] resultContainer = new String[1];
+		// Latch per sincronizzare la ricezione del messaggio
+		CountDownLatch latch = new CountDownLatch(1);
+
+		// Mi metto in ascolto sul topic di risposta
+		try {
+            mqttClient.subscribe(String.format(ButtonPanelTopics.BP_CHOICE_RES, idMachine), (topic, msg) -> {
+            	String resultString = new String(msg.getPayload(), StandardCharsets.UTF_8);
+            	// Salvo l'esito nella variabile e conto-down per sbloccare il thread
+            	resultContainer[0] = resultString;
+            	latch.countDown();
+            });
+        } catch (MqttException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+		try {
+			// Invio la richiesta di scelta bevanda, pubblicando l'ID della bevanda
+			String payloadString = String.valueOf(choice);
+			byte[] payloadBytes = payloadString.getBytes(StandardCharsets.UTF_8);
+			mqttClient.publish(String.format(ButtonPanelTopics.BP_CHOICE_REQ, idMachine), payloadBytes);
+
+			// Resto in attesa che arrivi la risposta o fino a timeout
+			latch.await();
+
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return "ERRORE_INTERNO";
+		} catch (MqttException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+		// Ritorno l'esito finale della scelta bevanda
+		//System.out.println("RESULT CONTROLLER: " + resultContainer[0]);
+		return resultContainer[0];
+	}
+	
+	// In DisplayController.java
+	public String getMachineStatus() {
+	    return dao.getMachineStatus(idMachine);
+	}
 
 }
 

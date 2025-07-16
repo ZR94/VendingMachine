@@ -11,14 +11,12 @@ import mySparkApp.Dao;
 import mySparkApp.machine.Beverage;
 
 public class ButtonPanelDao {
-    
-    Dao dao = new Dao();
 
     public ArrayList<Beverage> getAllBeverages(int idMachine) throws SQLException {
         
         ArrayList<Beverage> beverages = new ArrayList<Beverage>();
 
-        String dbName = dao.retrieveDbNameByIdMachine(idMachine);
+        String dbName = Dao.getDbNameFromIdMachine(idMachine);
         String sql = "SELECT * FROM beverage" + dbName;
 
         try (Connection conn = DBConnect.getInstance().getConnectionByIdMachine(idMachine);
@@ -38,4 +36,18 @@ public class ButtonPanelDao {
 
         return beverages;
     }
+
+    public String getMachineStatus(int machineId) {
+		String sql = "SELECT status FROM coffeeMachine WHERE idMachine = ?";
+		try (Connection conn = DBConnect.getInstance().getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.setInt(1, machineId);
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
+				return rs.getString("status");
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return null; // in caso di errore
+	}
 }
