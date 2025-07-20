@@ -31,7 +31,7 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
 import org.eclipse.paho.client.mqttv3.*;
 
-import mySparkApp.machine.SSLUtils;
+import mySparkApp.SSLUtils;
 
 public class MqttModClient {
 

@@ -2,7 +2,7 @@ package mySparkApp.administration;
 
 public class AdministrationTopics {
     
-    final static String DEFAULT_TOPIC = "/machine/%d";
+    final static String DEFAULT_TOPIC = "/machine/%";
 	
 	// TOPIC PUBLISH
     protected static final String MANAGEMENT_MACHINE_STATUS_SEND= DEFAULT_TOPIC + "/administration/statusUpdate/receive";
@@ -10,7 +10,7 @@ public class AdministrationTopics {
     
     // TOPIC SUBSCRIBE
 
-	protected static final String MANAGEMENT_MACHINE_STATUS_RECEIVE= DEFAULT_TOPIC + "/administration/statusUpdate/send";
-	protected static final String MANAGEMENT_MACHINE_REVENUE_RECEIVE= DEFAULT_TOPIC + "/administration/withdrawRevenue/response";
+	public static final String MANAGEMENT_MACHINE_STATUS_RECEIVE= DEFAULT_TOPIC + "/administration/statusUpdate/send";
+	public static final String MANAGEMENT_MACHINE_REVENUE_RECEIVE= DEFAULT_TOPIC + "/administration/withdrawRevenue/response";
 
 }

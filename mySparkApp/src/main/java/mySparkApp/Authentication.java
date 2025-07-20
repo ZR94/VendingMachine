@@ -12,8 +12,6 @@ import org.mindrot.jbcrypt.BCrypt;
 import mySparkApp.administration.Role;
 import mySparkApp.administration.User;
 
-
-
 public class Authentication {
 
     	private static Map<String, User> sessions = new HashMap<>();

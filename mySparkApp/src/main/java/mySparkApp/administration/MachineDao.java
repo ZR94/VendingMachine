@@ -12,7 +12,7 @@ import mySparkApp.machine.Status;
 
 public class MachineDao {
 
-    public void addMachine(ControllerCoffeeMachine machine) {
+    public static void addMachine(ControllerCoffeeMachine machine) {
 
         
         
