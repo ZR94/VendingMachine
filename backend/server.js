@@ -2,6 +2,7 @@
 
 var express = require('express');
 var session = require('express-session');
+const qs = require('qs');
 var Keycloak = require('keycloak-connect');
 const cors = require('cors');
 const path = require('path');
@@ -67,7 +68,7 @@ app.post('/login', async (req, res) => {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: qs.stringify({
-        client_id: 'myClient', // cambia con il tuo client
+        client_id: 'myclient', // cambia con il tuo client
         grant_type: 'password',
         username,
         password
@@ -94,6 +95,10 @@ app.post('/login', async (req, res) => {
     console.error('Errore login:', error);
     res.status(500).json({ message: 'Errore interno' });
   }
+});
+
+app.get('*', (req, res) => {
+  res.sendFile(path.resolve(__dirname, '../frontend/index.html'));
 });
 
 app.listen(port, () => console.log(`server listening at http://localhost:${port}`));

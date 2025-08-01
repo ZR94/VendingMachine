@@ -29,52 +29,9 @@
     crossorigin="anonymous"></script>
 
   <!-- Custom JS -->
-  <script defer src="./js/moment.min.js"></script>
+  <script defer src="./moment.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/keycloak-js@24.0.4/dist/keycloak.min.js"></script>
   <script defer type="module" src="./main.js"></script>
-  <script defer type="text/javascript" src="KC_URL/js/keycloak.js"></script>
-  <script defer type="text/javascript">
-      function output(content) {
-          if (typeof content === 'object') {
-              content = JSON.stringify(content, null, 2)
-          }
-          document.getElementById('output').textContent = content;
-      }
-
-      function profile() {
-          if (kc.idTokenParsed.name) {
-              document.getElementById('name').textContent = 'Hello ' + kc.idTokenParsed.name;
-          } else {
-              document.getElementById('name').textContent = 'Hello ' + kc.idTokenParsed.preferred_username;
-          }
-          if (kc.idTokenParsed.picture) {
-              document.getElementById('picture').src = kc.idTokenParsed.picture;
-          }
-          document.getElementById('user').style.display = 'block';
-      }
-
-      function sendRequest() {
-          var req = new XMLHttpRequest();
-          req.onreadystatechange = function() {
-              if (req.readyState === 4) {
-                  output(req.status + '\n\n' + req.responseText);
-              }
-          }
-          req.open('GET', 'SERVICE_URL', true);
-          req.setRequestHeader('Authorization', 'Bearer ' + kc.token);
-          req.send();
-      }
-
-      var kc = new Keycloak({ realm: 'CoffeeMachineRealm', clientId: 'myclient' });
-      window.onload = function() {
-          kc.init({'messageReceiveTimeout': 100000}).then(function() {
-              if(kc.authenticated) {
-                  profile();
-              } else {
-                  document.getElementById('anonymous').style.display = 'block';
-              }
-          });
-      }
-  </script>
 
 </head>
 

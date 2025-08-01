@@ -6,25 +6,25 @@ class Api {
      * Perform the login
      */
     static doLogin = async (username, password) => {
-        let response = await fetch('/http://localhost:8000/api/sessions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, password }),
-        });
-        if (response.ok) {
-            const result = await response.json();
-            return result;
-        }
-        else {
-            try {
+        try {
+            const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+            let response = await fetch(`${BASE_URL}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                return result;
+            } else {
                 const errDetail = await response.json();
-                throw errDetail.message;
+                throw errDetail.message || 'Unknown error occurred';
             }
-            catch (err) {
-                throw err;
-            }
+        } catch (error) {
+            throw `Network error: ${error.message}`;
         }
     }
 

@@ -14,6 +14,7 @@ import { createSearchItemTable, createSearchCommentTable, cardShowComment, creat
 import { createContactForm } from './templates/contact-template.js';
 import { createPricingForm } from './templates/pricing-template.js';
 import { createAlert } from './templates/alert-template.js';
+//import { initKeycloak, sendRequest, logout } from './auth.js';
 import page from "//unpkg.com/page/page.mjs";
 
 class App {
@@ -29,6 +30,12 @@ class App {
         this.loginLink = document.querySelector('#login');
         this.loggedUser = null;
         this.itemCart = [];
+
+        const kc = new Keycloak({
+            url: 'http://localhost:8080/auth',
+            realm: 'CoffeeMachineRealm',
+            clientId: 'myclient',
+          });
 
         // client-side routing with Page.js
         page('/login', () => {
@@ -146,28 +153,24 @@ class App {
 
     onLoginSubmitted = async (event) => {
         event.preventDefault();
-        const form = event.target;
-
+      
         try {
-            // Call the login API and get the user object
-            const { accessToken, roles } = await Api.doLogin(form.email.value, form.password.value);
-            // Save the user in the local storage
-            localStorage.setItem('token', accessToken);
-            localStorage.setItem('roles', JSON.stringify(roles));
-            // Show a success alert message with the welcome message
-            this.showAlertMessage('success', `Welcome!`);
-            // Redirect to the store page
-            page.redirect('/dashboard');
-
+          await kc.init({ onLoad: 'login-required' });
+      
+          // Salva i dati dell’utente
+          localStorage.setItem('user', JSON.stringify({
+            token: kc.token,
+            name: kc.idTokenParsed?.preferred_username || "Utente",
+            roles: kc.tokenParsed.realm_access.roles,
+          }));
+      
+          page.redirect('/userPage');
         } catch (error) {
-            // Show an error alert message with the error message
-            if (error) {
-                const errorMsg = error;
-                this.showAlertMessage('danger', errorMsg);
-            }
+          console.error("Errore login", error);
+          alert("Errore durante il login");
         }
-
     }
+      
 
 
 
